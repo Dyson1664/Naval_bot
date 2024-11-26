@@ -1,6 +1,6 @@
 # main.py
 
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify
 import random
 import os
 import logging
@@ -154,6 +154,29 @@ def get_random_quote():
     with open('quotes.txt', 'r', encoding='utf-8') as f:
         quotes = f.readlines()
     return random.choice(quotes).strip()
+
+
+# Ensure send_daily_quotes is defined or imported in app.py
+def send_daily_quotes():
+    quote = get_random_quote()
+    subscribers = get_subscribers()
+    for chat_id in subscribers:
+        try:
+            bot.send_message(chat_id=chat_id, text=quote)
+            logger.info(f"Sent quote to {chat_id}")
+        except Exception as e:
+            logger.error(f"Failed to send quote to {chat_id}: {e}")
+
+# Secure endpoint with a secret token
+@app.route('/trigger_quotes', methods=['GET'])
+def trigger_quotes():
+    token = request.args.get('token')
+    if token != os.getenv('SECRET_TOKEN'):
+        logger.warning("Unauthorized access attempt to /trigger_quotes")
+        return jsonify({'error': 'Unauthorized'}), 403
+    send_daily_quotes()
+    return jsonify({'status': 'Quotes sent successfully'}), 200
+
 
 if __name__ == '__main__':
     webhook_url = os.getenv('WEBHOOK_URL')
