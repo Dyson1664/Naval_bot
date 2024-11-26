@@ -1,2 +1,3 @@
 .env
-
+credentials.json
+credentials_base64.txt

@@ -1,14 +1,16 @@
-# app.py
+# main.py
 
 from flask import Flask, render_template, request
 import random
-import threading
-import schedule
-import time
 import os
 import logging
 from dotenv import load_dotenv
 from telegram import Bot, Update
+from telegram.ext import Dispatcher, CommandHandler
+import gspread
+from oauth2client.service_account import ServiceAccountCredentials
+import base64
+import json
 from telegram.ext import Updater, Dispatcher, CommandHandler
 
 # Load environment variables
@@ -30,54 +32,77 @@ else:
 
 bot = Bot(token=TELEGRAM_TOKEN)
 
-# Initialize dispatcher as None
-dispatcher = None
+# Google Sheets Setup
+def setup_google_sheet():
+    scope = ['https://spreadsheets.google.com/feeds', 'https://www.googleapis.com/auth/drive']
 
-# File to store subscriber chat IDs
-SUBSCRIBERS_FILE = 'subscribers.txt'
+    # Get the base64-encoded credentials from the environment variable
+    creds_base64 = os.getenv('GOOGLE_CREDENTIALS')
+    if not creds_base64:
+        raise ValueError("GOOGLE_CREDENTIALS environment variable not set")
 
-# Ensure subscribers file exists
-if not os.path.exists(SUBSCRIBERS_FILE):
-    with open(SUBSCRIBERS_FILE, 'w') as f:
-        pass  # Create the file if it doesn't exist
+    # Decode the base64-encoded credentials
+    try:
+        creds_json = base64.b64decode(creds_base64)
+        credentials_info = json.loads(creds_json)
+        credentials = ServiceAccountCredentials.from_json_keyfile_dict(credentials_info, scope)
+    except Exception as e:
+        logger.error(f"Error decoding Google credentials: {e}")
+        raise ValueError("Invalid GOOGLE_CREDENTIALS environment variable")
 
-# Helper functions
-def get_random_quote():
-    with open('quotes.txt', 'r', encoding='utf-8') as f:
-        quotes = f.readlines()
-    return random.choice(quotes).strip()
+    client = gspread.authorize(credentials)
+
+    # Open your Google Sheet
+    sheet = client.open('naval_bot').sheet1  # Replace 'naval_bot' with your Google Sheet name if different
+    return sheet
 
 def add_subscriber(chat_id):
     chat_id = str(chat_id)
-    with open(SUBSCRIBERS_FILE, 'r') as f:
-        subscribers = f.read().splitlines()
-    if chat_id not in subscribers:
-        subscribers.append(chat_id)
-        with open(SUBSCRIBERS_FILE, 'w') as f:
-            f.write('\n'.join(subscribers))
-        return True
-    return False
+    try:
+        sheet = setup_google_sheet()
+        subscribers = sheet.col_values(1)
+        if chat_id not in subscribers:
+            sheet.append_row([chat_id])
+            logger.info(f"Added subscriber {chat_id} to Google Sheets.")
+            return True
+        else:
+            logger.info(f"Subscriber {chat_id} already exists in Google Sheets.")
+            return False
+    except Exception as e:
+        logger.error(f"Error adding subscriber {chat_id}: {e}")
+        return False
 
 def remove_subscriber(chat_id):
     chat_id = str(chat_id)
-    with open(SUBSCRIBERS_FILE, 'r') as f:
-        subscribers = f.read().splitlines()
-    if chat_id in subscribers:
-        subscribers.remove(chat_id)
-        with open(SUBSCRIBERS_FILE, 'w') as f:
-            f.write('\n'.join(subscribers))
-        return True
-    return False
+    try:
+        sheet = setup_google_sheet()
+        subscribers = sheet.col_values(1)
+        if chat_id in subscribers:
+            cell = sheet.find(chat_id)
+            sheet.delete_rows(cell.row)
+            logger.info(f"Removed subscriber {chat_id} from Google Sheets.")
+            return True
+        else:
+            logger.info(f"Subscriber {chat_id} not found in Google Sheets.")
+            return False
+    except Exception as e:
+        logger.error(f"Error removing subscriber {chat_id}: {e}")
+        return False
 
 def get_subscribers():
-    with open(SUBSCRIBERS_FILE, 'r') as f:
-        subscribers = f.read().splitlines()
-    return subscribers
+    try:
+        sheet = setup_google_sheet()
+        subscribers = sheet.col_values(1)
+        return subscribers
+    except Exception as e:
+        logger.error(f"Error retrieving subscribers: {e}")
+        return []
 
 # Telegram command handlers
 def start(update: Update, context):
     welcome_message = (
         "Hello! I'm your Daily Quote Bot.\n\n"
+        "I can send you a new inspirational quote every day.\n\n"
         "Use /subscribe to receive daily quotes.\n"
         "Use /unsubscribe to stop receiving quotes."
     )
@@ -97,6 +122,13 @@ def unsubscribe(update: Update, context):
     else:
         context.bot.send_message(chat_id=chat_id, text="You are not subscribed.")
 
+# Initialize Dispatcher
+dispatcher = Dispatcher(bot, update_queue=None, workers=4, use_context=True)
+# Add handlers to dispatcher
+dispatcher.add_handler(CommandHandler('start', start))
+dispatcher.add_handler(CommandHandler('subscribe', subscribe))
+dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe))
+
 # Flask routes
 @app.route('/')
 def index():
@@ -105,11 +137,9 @@ def index():
 
 @app.route('/webhook', methods=['POST'])
 def webhook():
-    global dispatcher
     if request.method == 'POST':
         update = Update.de_json(request.get_json(force=True), bot)
-        if dispatcher:
-            dispatcher.process_update(update)
+        dispatcher.process_update(update)
         return 'OK', 200
 
 def set_webhook():
@@ -118,44 +148,18 @@ def set_webhook():
         bot.set_webhook(webhook_url)
         logger.info(f"Webhook set to {webhook_url}")
     else:
-        logger.error("WEBHOOK_URL not set!")
+        raise ValueError("WEBHOOK_URL environment variable not set")
 
-# Scheduler function
-def send_daily_quotes():
-    quote = get_random_quote()
-    subscribers = get_subscribers()
-    for chat_id in subscribers:
-        try:
-            bot.send_message(chat_id=chat_id, text=quote)
-            logger.info(f"Sent quote to {chat_id}")
-        except Exception as e:
-            logger.error(f"Failed to send quote to {chat_id}: {e}")
-
-def run_scheduler():
-    schedule.every().day.at("11:45").do(send_daily_quotes)  # Adjust time as needed
-    while True:
-        schedule.run_pending()
-        time.sleep(60)  # Wait one minute
-
-def run_flask_app():
-    app.run(host='0.0.0.0', port=5000, debug=False)
+def get_random_quote():
+    with open('quotes.txt', 'r', encoding='utf-8') as f:
+        quotes = f.readlines()
+    return random.choice(quotes).strip()
 
 if __name__ == '__main__':
     webhook_url = os.getenv('WEBHOOK_URL')
     if webhook_url:
-        # Webhook Mode
+        # Set up the webhook
         set_webhook()
-
-        # Initialize Dispatcher for webhook mode
-        dispatcher = Dispatcher(bot, update_queue=None, workers=4, use_context=True)
-        # Add handlers to dispatcher
-        dispatcher.add_handler(CommandHandler('start', start))
-        dispatcher.add_handler(CommandHandler('subscribe', subscribe))
-        dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe))
-
-        # Start the scheduler in a separate thread
-        scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
-        scheduler_thread.start()
 
         # Run the Flask app
         app.run(host='0.0.0.0', port=5000)
@@ -170,15 +174,6 @@ if __name__ == '__main__':
         updater.dispatcher.add_handler(CommandHandler('start', start))
         updater.dispatcher.add_handler(CommandHandler('subscribe', subscribe))
         updater.dispatcher.add_handler(CommandHandler('unsubscribe', unsubscribe))
-
-        # Start the scheduler in a separate thread
-        scheduler_thread = threading.Thread(target=run_scheduler, daemon=True)
-        scheduler_thread.start()
-
-        # Start the Flask app in a separate thread
-        flask_thread = threading.Thread(target=run_flask_app, daemon=True)
-        flask_thread.start()
-
 
         # Start polling
         updater.start_polling()
