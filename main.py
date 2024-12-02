@@ -10,7 +10,9 @@ from telegram import Update
 from telegram.ext import (
     ApplicationBuilder,
     CommandHandler,
-    ContextTypes
+    ContextTypes,
+    MessageHandler,
+    filters
 )
 import gspread
 from oauth2client.service_account import ServiceAccountCredentials
@@ -133,6 +135,18 @@ async def unsubscribe(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         await context.bot.send_message(chat_id=chat_id, text="You are not subscribed.")
 
+# New function to send welcome message on any text message
+async def send_welcome(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    welcome_message = (
+        "Hello!\n\n"
+        "Use /subscribe to receive daily quotes.\n"
+        "Use /unsubscribe to stop receiving quotes."
+    )
+    await context.bot.send_message(
+        chat_id=update.effective_chat.id,
+        text=welcome_message
+    )
+
 # Flask routes
 @app.route('/')
 def index():
@@ -167,6 +181,9 @@ def main():
     application.add_handler(CommandHandler('start', start))
     application.add_handler(CommandHandler('subscribe', subscribe))
     application.add_handler(CommandHandler('unsubscribe', unsubscribe))
+
+    # Add the message handler for all text messages that are not commands
+    application.add_handler(MessageHandler(filters.TEXT & (~filters.COMMAND), send_welcome))
 
     # Schedule daily quotes
     application.job_queue.run_daily(

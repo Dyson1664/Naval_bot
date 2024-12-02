@@ -1,0 +1,56 @@
+/* Set margin and padding to zero for body and html */
+body, html {
+    margin: 0;
+    padding: 0;
+    height: 100%;
+    overflow-x: hidden; /* Prevent horizontal scroll */
+}
+
+/* Container for the background image */
+.container {
+    background: url("../images/naval.png") no-repeat center center fixed;
+    background-size: cover;
+    height: 100vh; /* Use viewport height */
+    position: relative;
+}
+
+/* Overlay to darken the background image for better text readability */
+.overlay {
+    background-color: rgba(0, 0, 0, 0.5); /* Adjust opacity as needed */
+    color: #ffffff;
+    height: 100%;
+    width: 100%;
+    box-sizing: border-box; /* Include padding in width calculation */
+    text-align: center;
+    position: absolute;
+    top: 0;
+    left: 0;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    align-items: center;
+    padding: 0 20px;
+}
+
+/* Style for the main heading */
+h1 {
+    font-family: 'Montserrat', sans-serif;
+    font-size: 50px;
+    margin-bottom: 20px;
+    text-transform: uppercase;
+    letter-spacing: 2px;
+}
+
+/* Style for the quote text */
+p {
+    font-family: 'Open Sans', sans-serif;
+    font-size: 30px;
+    max-width: 800px;
+    line-height: 1.5;
+    padding-top: 0; /* Remove excessive padding */
+}
+
+/* Spacer to push content down */
+.spacer {
+    flex: .75; /* Adjust this value to move content down */
+}

@@ -3,10 +3,19 @@
 <head>
     <meta charset="UTF-8">
     <title>Daily Quote</title>
-    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+    <!-- Include Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans&display=swap" rel="stylesheet">
+    <!-- Link to your CSS file -->
+    <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
 <body>
-    <h1>Your Daily Quote</h1>
-    <p>{{ quote }}</p>
+    <div class="container">
+        <div class="overlay">
+            <!-- Spacer div to push content down -->
+            <div class="spacer"></div>
+
+            <p>{{ quote }}</p>
+        </div>
+    </div>
 </body>
 </html>
