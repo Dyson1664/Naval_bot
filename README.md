@@ -4,7 +4,7 @@ A Flask-based web application that integrates with the Telegram API to send dail
 ## Features
 * **Daily Quotes**: Sends a daily quote to all subscribers at a specified time.
 * **Telegram Bot Integration**: Users can interact with the bot via Telegram commands such as /subscribe and /unsubscribe.
-* * **Google Sheets Integration**: Stores and retrieves subscriber data from a Google Sheet.
+* **Google Sheets Integration**: Stores and retrieves subscriber data from a Google Sheet.
 * **Google Sheets Integration**: Subscriber data is securely stored and managed using Google Sheets API.
 * **Web Interface**: Displays a random quote on a web page served by Flask.
 * **Cross-Platform Deployment**: Can be run on Raspberry Pi or any machine running Linux, macOS, or Windows.
