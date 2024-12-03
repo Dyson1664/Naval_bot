@@ -3,8 +3,6 @@
 <head>
     <meta charset="UTF-8">
     <title>Daily Quote</title>
-    <!-- Include Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@700&family=Open+Sans&display=swap" rel="stylesheet">
     <!-- Link to your CSS file -->
     <link rel="stylesheet" href="{{ url_for('static', filename='css/styles.css') }}">
 </head>
@@ -13,7 +11,6 @@
         <div class="overlay">
             <!-- Spacer div to push content down -->
             <div class="spacer"></div>
-
             <p>{{ quote }}</p>
         </div>
     </div>
