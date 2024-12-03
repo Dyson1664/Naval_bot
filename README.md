@@ -35,8 +35,8 @@ pip install -r requirements.txt
 
 Create a .env file with the following variables:
 
-* **TELEGRAM_BOT_TOKEN=**your-telegram-bot-token from BotFather.
-* **GOOGLE_CREDENTIALS=**your-base64-encoded-google-credentials-json
+* **TELEGRAM_BOT_TOKEN=** your-telegram-bot-token from BotFather.
+* **GOOGLE_CREDENTIALS=** your-base64-encoded-google-credentials-json
 Prepare the Google Sheet
 
 Create a Google Sheet named naval_bot (or change the name in the code).
