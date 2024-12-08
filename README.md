@@ -1,6 +1,6 @@
 # Naval Quotes Telegram Bot
 
-A Flask-based web application that integrates with the Telegram API to send daily quotes from Naval Ravikant. Users can interact with the bot through Telegram to subscribe or unsubscribe from receiving daily quotes, and subscriber data is seamlessly managed using Google Sheets.
+A Flask-based web application that integrates with the Telegram API to send daily quotes from Naval Ravikant. Users can interact with the bot through Telegram to subscribe or unsubscribe from receiving daily quotes, and subscriber data is seamlessly managed using Google Sheets. Message @naval_bot_bot to begin.
 ## Features
 * **Daily Quotes**: Sends a daily quote to all subscribers at a specified time.
 * **Telegram Bot Integration**: Users can interact with the bot via Telegram commands such as /subscribe and /unsubscribe.
